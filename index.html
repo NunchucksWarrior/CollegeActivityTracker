@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — College Activity Evaluator</title>
+<style>
+  :root{
+    --ink:#1B2A4A;
+    --paper:#FAF7F0;
+    --paper-2:#F1ECDF;
+    --gold:#B8935A;
+    --sage:#5F7A5E;
+    --clay:#B5543F;
+    --line:#D9D2BF;
+    --text:#2A2A28;
+    --shadow:0 10px 30px rgba(27,42,74,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--text);
+    font-family:'Georgia','Iowan Old Style',serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  header{
+    width:100%;
+    max-width:640px;
+    padding:32px 24px 16px;
+    text-align:left;
+  }
+  header h1{
+    font-size:1.9rem;
+    margin:0 0 4px;
+    font-weight:400;
+    letter-spacing:0.2px;
+    color:var(--ink);
+  }
+  header p{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.92rem;
+    color:#5c5c58;
+    margin:0;
+  }
+  nav{
+    width:100%;
+    max-width:640px;
+    display:flex;
+    gap:8px;
+    padding:0 24px 12px;
+    font-family:Helvetica,Arial,sans-serif;
+  }
+  nav button{
+    flex:1;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--ink);
+    font-size:0.85rem;
+    cursor:pointer;
+    border-radius:2px;
+  }
+  nav button.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  main{
+    width:100%;
+    max-width:640px;
+    padding:8px 24px 60px;
+    flex:1;
+  }
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* Evaluate screen */
+  .entry-box{
+    background:white;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:20px;
+    box-shadow:var(--shadow);
+  }
+  .entry-box label{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.8rem;
+    color:#5c5c58;
+    display:block;
+    margin-bottom:8px;
+  }
+  .entry-box textarea{
+    width:100%;
+    min-height:70px;
+    padding:10px;
+    font-family:inherit;
+    font-size:1rem;
+    border:1px solid var(--line);
+    border-radius:3px;
+    resize:vertical;
+  }
+  .entry-box button{
+    margin-top:12px;
+    font-family:Helvetica,Arial,sans-serif;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:10px 18px;
+    font-size:0.85rem;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .entry-box button:hover{opacity:0.9;}
+
+  .card-area{
+    margin-top:28px;
+    display:flex;
+    justify-content:center;
+    min-height:220px;
+  }
+  .card{
+    width:100%;
+    max-width:420px;
+    background:white;
+    border-radius:6px;
+    padding:26px 24px;
+    box-shadow:var(--shadow);
+    border-top:5px solid var(--line);
+    touch-action:pan-y;
+    cursor:grab;
+    user-select:none;
+    position:relative;
+  }
+  .card.good{border-top-color:var(--sage);}
+  .card.bad{border-top-color:var(--clay);}
+  .card .verdict{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.75rem;
+    letter-spacing:0.4px;
+    color:var(--sage);
+    margin-bottom:10px;
+  }
+  .card.bad .verdict{color:var(--clay);}
+  .card .activity-name{
+    font-size:1.25rem;
+    margin:0 0 12px;
+    color:var(--ink);
+  }
+  .card .reason{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.9rem;
+    line-height:1.5;
+    color:#3d3d3a;
+  }
+  .card-controls{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+    font-family:Helvetica,Arial,sans-serif;
+  }
+  .card-controls button{
+    flex:1;
+    padding:10px;
+    font-size:0.85rem;
+    border-radius:3px;
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:var(--paper-2);
+  }
+  .card-controls .accept{
+    background:var(--sage);
+    color:white;
+    border-color:var(--sage);
+  }
+  .card-controls .accept[disabled]{
+    background:#c9d2c8;
+    border-color:#c9d2c8;
+    cursor:not-allowed;
+  }
+  .hint{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.75rem;
+    color:#8a8a84;
+    text-align:center;
+    margin-top:10px;
+  }
+
+  /* Checklist screen */
+  #empty-msg{
+    font-family:Helvetica,Arial,sans-serif;
+    color:#5c5c58;
+    text-align:center;
+    padding:60px 20px;
+    border:1px dashed var(--line);
+    border-radius:4px;
+  }
+  .task{
+    background:white;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px 18px;
+    margin-bottom:14px;
+    box-shadow:0 2px 8px rgba(27,42,74,0.05);
+  }
+  .task-name{
+    font-size:1.1rem;
+    color:var(--ink);
+    margin:0 0 10px;
+  }
+  .update-input-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .progress-input{
+    flex:1;
+    padding:8px 10px;
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.88rem;
+    border:1px solid var(--line);
+    border-radius:3px;
+  }
+  .add-update-btn{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.82rem;
+    padding:8px 14px;
+    border-radius:3px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .next-step-box{
+    background:var(--paper-2);
+    border-left:3px solid var(--gold);
+    border-radius:2px;
+    padding:10px 12px;
+    margin-bottom:14px;
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.85rem;
+    line-height:1.45;
+    color:#3d3d3a;
+  }
+  .next-step-box .next-step-label{
+    display:block;
+    font-size:0.72rem;
+    font-weight:bold;
+    color:var(--gold);
+    margin-bottom:4px;
+  }
+    list-style:disc;
+    margin:0 0 14px;
+    padding-left:20px;
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.88rem;
+  }
+  .update-list li{
+    margin-bottom:8px;
+    line-height:1.45;
+  }
+  .update-list li.weak-update{
+    color:var(--text);
+  }
+  .improve-tip{
+    display:block;
+    margin-top:3px;
+    font-size:0.82rem;
+    font-style:italic;
+    color:var(--clay);
+  }
+  .improve-tip::before{
+    content:"Try this: ";
+    font-style:normal;
+    font-weight:bold;
+  }
+  .task-actions{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    font-family:Helvetica,Arial,sans-serif;
+  }
+  .task-actions button{
+    padding:9px;
+    font-size:0.82rem;
+    border-radius:3px;
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    color:var(--text);
+  }
+  .task-actions .quit-btn{
+    color:var(--clay);
+    border-color:var(--clay);
+    background:white;
+  }
+  .confirmed-tag{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:0.78rem;
+    color:var(--sage);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ledger</h1>
+  <p>Type an activity. Ledger tells you if it strengthens a college application, and tracks the ones that do.</p>
+</header>
+
+<nav>
+  <button id="nav-eval" class="active">Evaluate</button>
+  <button id="nav-list">Checklist</button>
+</nav>
+
+<main>
+
+  <section id="screen-eval" class="screen active">
+    <div class="entry-box">
+      <label for="activity-input">What do you do?</label>
+      <textarea id="activity-input" placeholder="e.g. Founded a robotics club at my school and mentor two younger teams"></textarea>
+      <button id="evaluate-btn">Evaluate</button>
+    </div>
+
+    <div class="card-area" id="card-area"></div>
+  </section>
+
+  <section id="screen-list" class="screen">
+    <div id="checklist"></div>
+    <div id="empty-msg" style="display:none;">No current good for college activities being tracked right now</div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  const state = { tasks: [] };
+  let idCounter = 1;
+
+  // ---------- Evaluation heuristic ----------
+  const strongSignals = [
+    { words:['founder','founded','started my own','co-founded'], label:'initiative — you started something' },
+    { words:['president','captain','chair','head of','director','led ','leader of'], label:'leadership' },
+    { words:['volunteer','tutor','mentor','fundraiser','charity','community service'], label:'sustained community impact' },
+    { words:['competition','olympiad','tournament','hackathon','ctf','robotics','debate','science fair','picoctf','cyberpatriot'], label:'competitive achievement' },
+    { words:['research','lab ','published','paper','study'], label:'academic depth' },
+    { words:['orchestra','band','choir','theatre','theater','composed','painting','art club'], label:'sustained artistic commitment' },
+    { words:['varsity','team captain','track','soccer','basketball','swim','cross country'], label:'athletics' },
+    { words:['internship','part-time job','work experience','shadowing'], label:'real-world work experience' },
+    { words:['every week','weekly','for two years','for three years','ongoing','since freshman'], label:'sustained, long-term commitment' }
+  ];
+  const weakSignals = ['watch tv','watching tv','scrolling','scroll social media','social media','napping','take naps','sleep in','browsing the internet','play video games casually','nothing much','just relax'];
+
+  function evaluate(text){
+    const lower = text.toLowerCase();
+    const hits = strongSignals.filter(s => s.words.some(w => lower.includes(w)));
+    const weak = weakSignals.some(w => lower.includes(w));
+
+    if (hits.length > 0){
+      const labels = hits.map(h => h.label).join(', ');
+      return { good:true, reason:`This shows ${labels}. Admissions readers look for depth and initiative like this — worth tracking.` };
+    }
+    if (weak){
+      return { good:false, reason:`This reads as a passive, everyday activity with no clear skill, commitment, or impact behind it. Consider describing what you actually do or accomplish in it instead.` };
+    }
+    return { good:false, reason:`This could work, but as written it doesn't show leadership, sustained commitment, or measurable impact. Try adding specifics — how long, what role, what you achieved.` };
+  }
+
+  function improve(text, activityName){
+    const lower = text.toLowerCase();
+    const weak = weakSignals.some(w => lower.includes(w));
+    if (weak){
+      return `Swap passive time in ${activityName} for a specific contribution — lead a session, mentor someone, or take on a task no one else is doing.`;
+    }
+    return `Add a number, outcome, or new responsibility to this update — e.g. "organized," "raised," "taught," or "grew it to ___" instead of just showing up.`;
+  }
+
+  function nextStep(task){
+    if (task.updates.length === 0){
+      return `Add your first update above — once there's something to react to, this box will suggest what to do next in ${task.name}.`;
+    }
+    const latest = task.updates[task.updates.length - 1];
+    if (!latest.good){
+      return `${latest.suggestion} Once you've done that, log it as your next update.`;
+    }
+    const lower = latest.text.toLowerCase();
+    const hit = strongSignals.find(s => s.words.some(w => lower.includes(w)));
+    if (hit){
+      return `You're building real ${hit.label} in ${task.name}. Next, try to measure or scale it — a number, a new person you help, or more responsibility — so it's easy to point to in your application.`;
+    }
+    return `Good update. Next, look for a way to take on more responsibility or produce a visible result in ${task.name}, then log it here.`;
+  }
+  const navEval = document.getElementById('nav-eval');
+  const navList = document.getElementById('nav-list');
+  const screenEval = document.getElementById('screen-eval');
+  const screenList = document.getElementById('screen-list');
+  const input = document.getElementById('activity-input');
+  const evalBtn = document.getElementById('evaluate-btn');
+  const cardArea = document.getElementById('card-area');
+  const checklist = document.getElementById('checklist');
+  const emptyMsg = document.getElementById('empty-msg');
+
+  function showScreen(name){
+    screenEval.classList.toggle('active', name==='eval');
+    screenList.classList.toggle('active', name==='list');
+    navEval.classList.toggle('active', name==='eval');
+    navList.classList.toggle('active', name==='list');
+    if (name==='list') renderChecklist();
+  }
+  navEval.addEventListener('click', ()=>showScreen('eval'));
+  navList.addEventListener('click', ()=>showScreen('list'));
+
+  // ---------- Evaluate flow ----------
+  evalBtn.addEventListener('click', ()=>{
+    const text = input.value.trim();
+    if (!text) return;
+    const result = evaluate(text);
+    renderCard(text, result);
+  });
+
+  function renderCard(name, result){
+    cardArea.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card ' + (result.good ? 'good' : 'bad');
+    card.innerHTML = `
+      <div class="verdict">${result.good ? 'GOOD FOR YOUR APPLICATION' : 'NOT PARTICULARLY STRONG'}</div>
+      <h3 class="activity-name">${escapeHtml(name)}</h3>
+      <p class="reason">${result.reason}</p>
+      <div class="card-controls">
+        <button class="dismiss">Try another</button>
+        <button class="accept" ${result.good ? '' : 'disabled'}>${result.good ? 'Add to checklist →' : 'Add to checklist →'}</button>
+      </div>
+    `;
+    cardArea.appendChild(card);
+
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.textContent = result.good ? 'Swipe the card right, or press "Add to checklist"' : 'Only activities marked good can be added';
+    cardArea.appendChild(hint);
+
+    const acceptBtn = card.querySelector('.accept');
+    const dismissBtn = card.querySelector('.dismiss');
+
+    dismissBtn.addEventListener('click', ()=>{
+      input.value = '';
+      cardArea.innerHTML = '';
+    });
+
+    if (result.good){
+      acceptBtn.addEventListener('click', ()=> acceptActivity(name));
+      enableSwipe(card, ()=> acceptActivity(name));
+    }
+  }
+
+  function acceptActivity(name){
+    state.tasks.push({ id: idCounter++, name: name, updates:[], confirmed:false });
+    input.value = '';
+    cardArea.innerHTML = '';
+    showScreen('list');
+  }
+
+  function enableSwipe(card, onAccept){
+    let startX = 0, dx = 0, dragging = false;
+    const threshold = 100;
+
+    function pointerDown(e){
+      dragging = true;
+      startX = (e.touches ? e.touches[0].clientX : e.clientX);
+      card.style.transition = 'none';
+      card.style.cursor = 'grabbing';
+    }
+    function pointerMove(e){
+      if (!dragging) return;
+      const x = (e.touches ? e.touches[0].clientX : e.clientX);
+      dx = x - startX;
+      card.style.transform = `translateX(${dx}px) rotate(${dx/20}deg)`;
+    }
+    function pointerUp(){
+      if (!dragging) return;
+      dragging = false;
+      card.style.transition = 'transform 0.25s ease';
+      card.style.cursor = 'grab';
+      if (dx > threshold){
+        card.style.transform = `translateX(600px) rotate(20deg)`;
+        setTimeout(onAccept, 180);
+      } else {
+        card.style.transform = 'translateX(0) rotate(0)';
+      }
+      dx = 0;
+    }
+
+    card.addEventListener('mousedown', pointerDown);
+    window.addEventListener('mousemove', pointerMove);
+    window.addEventListener('mouseup', pointerUp);
+    card.addEventListener('touchstart', pointerDown, {passive:true});
+    card.addEventListener('touchmove', pointerMove, {passive:true});
+    card.addEventListener('touchend', pointerUp);
+  }
+
+  // ---------- Checklist ----------
+  function renderChecklist(){
+    checklist.innerHTML = '';
+    if (state.tasks.length === 0){
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    state.tasks.forEach(task => {
+      const el = document.createElement('div');
+      el.className = 'task';
+      el.dataset.id = task.id;
+      el.innerHTML = `
+        <h3 class="task-name">${escapeHtml(task.name)}</h3>
+        <ul class="update-list"></ul>
+        <div class="update-input-row">
+          <input type="text" class="progress-input" placeholder="Update your progress...">
+          <button class="add-update-btn">Add</button>
+        </div>
+        <div class="next-step-box">
+          <span class="next-step-label">Next step</span>
+          <span class="next-step-text"></span>
+        </div>
+        <div class="task-actions">
+          <button class="still-doing-btn">Are you still doing/interested in this task?</button>
+          <button class="quit-btn">Quit activity</button>
+        </div>
+      `;
+      checklist.appendChild(el);
+
+      const updateList = el.querySelector('.update-list');
+      const progressInput = el.querySelector('.progress-input');
+      const addUpdateBtn = el.querySelector('.add-update-btn');
+      const nextStepText = el.querySelector('.next-step-text');
+
+      function renderUpdates(){
+        updateList.innerHTML = '';
+        task.updates.forEach(u => {
+          const li = document.createElement('li');
+          li.textContent = u.text;
+          if (!u.good){
+            li.classList.add('weak-update');
+            const tip = document.createElement('span');
+            tip.className = 'improve-tip';
+            tip.textContent = u.suggestion;
+            li.appendChild(tip);
+          }
+          updateList.appendChild(li);
+        });
+        nextStepText.textContent = nextStep(task);
+      }
+      renderUpdates();
+
+      function submitUpdate(){
+        const text = progressInput.value.trim();
+        if (!text) return;
+        const result = evaluate(text);
+        const entry = { text, good: result.good };
+        if (!result.good){
+          entry.suggestion = improve(text, task.name);
+        }
+        task.updates.push(entry);
+        progressInput.value = '';
+        renderUpdates();
+      }
+      addUpdateBtn.addEventListener('click', submitUpdate);
+      progressInput.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter'){ e.preventDefault(); submitUpdate(); }
+      });
+
+      const actions = el.querySelector('.task-actions');
+      const stillDoingBtn = el.querySelector('.still-doing-btn');
+      const quitBtn = el.querySelector('.quit-btn');
+
+      stillDoingBtn.addEventListener('click', ()=>{
+        actions.style.display = 'none';
+        const tag = document.createElement('div');
+        tag.className = 'confirmed-tag';
+        tag.textContent = 'Confirmed active';
+        el.appendChild(tag);
+      });
+
+      quitBtn.addEventListener('click', ()=>{
+        state.tasks = state.tasks.filter(t => t.id !== task.id);
+        el.remove();
+        if (state.tasks.length === 0){
+          emptyMsg.style.display = 'block';
+        }
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+})();
+</script>
+</body>
+</html>
